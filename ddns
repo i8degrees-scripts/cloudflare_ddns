@@ -61,7 +61,7 @@ do
 					fi
 				else
 					echo "IPV4: $dns_record already up do date"
-					echo "$(date -Iminutes) IPV4: $dns_record already up do date" >> $logfile
+					#echo "$(date -Iminutes) IPV4: $dns_record already up do date" >> $logfile
 	fi
 
 	if [[ $cf_ip_6 != $ext_ip_6 ]]; then
@@ -81,6 +81,6 @@ do
 					fi
 				else
 					echo "IPV6: $dns_record already up do date"
-					echo "$(date -Iminutes) IPV6: $dns_record already up do date" >> $logfile
+					#echo "$(date -Iminutes) IPV6: $dns_record already up do date" >> $logfile
 	fi
 done

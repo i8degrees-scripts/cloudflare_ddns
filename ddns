@@ -60,7 +60,7 @@ do
 						echo "$(date -Iminutes) IPV4: $dns_record update failed" >> $logfile
 					fi
 				else
-					echo "$dns_record already up do date"
+					echo "IPV4: $dns_record already up do date"
 					echo "$(date -Iminutes) IPV4: $dns_record already up do date" >> $logfile
 	fi
 

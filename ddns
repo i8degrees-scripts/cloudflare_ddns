@@ -1,86 +1,95 @@
 #!/usr/bin/env bash
+
 #take config as parameter
 source $1
 
 set -e
 
-user_id=$(curl -s \
+user_id=$(curl -4 -s \
 	-X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
 	-H "Authorization: Bearer $api_token" \
 	-H "Content-Type:application/json" \
 	| jq -r '{"result"}[] | .id')
 
-zone_id=$(curl -s \
+zone_id=$(curl -4 -s \
 	-X GET "https://api.cloudflare.com/client/v4/zones?name=$zone_name&status=active" \
 	-H "Content-Type: application/json" \
 	-H "X-Auth-Email: $email" \
 	-H "Authorization: Bearer $api_token" \
 	| jq -r '{"result"}[] | .[0] | .id')
 
-for dns_record in $dns_records
-do
-	record_data=$(curl -s \
-		-X GET "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records?type=A&name=$dns_record"  \
-		-H "Content-Type: application/json" \
-		-H "X-Auth-Email: $email" \
-		-H "Authorization: Bearer $api_token")
-
-	record_data_6=$(curl -s \
-		-X GET "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records?type=AAAA&name=$dns_record"  \
-		-H "Content-Type: application/json" \
-		-H "X-Auth-Email: $email" \
-		-H "Authorization: Bearer $api_token")
-
-	record_id=$(jq -r '{"result"}[] | .[0] | .id' <<< $record_data)
-	record_id_6=$(jq -r '{"result"}[] | .[0] | .id' <<< $record_data_6)
-	cf_ip=$(jq -r '{"result"}[] | .[0] | .content' <<< $record_data)
-	cf_ip_6=$(jq -r '{"result"}[] | .[0] | .content' <<< $record_data_6)
-	ext_ip=$(curl -s -X GET -4 https://ifconfig.co)
-	ext_ip_6=$(curl -s -X GET -6 https://ifconfig.co)
-
-	echo "cf_ip: $cf_ip"
-	echo "cf_ip_6: $cf_ip_6"
-
-	echo "ext_ip: $ext_ip"
-	echo "ext_ip_6: $ext_ip_6"
-
-	if [[ $cf_ip != $ext_ip ]]; then
-		result=$(curl -s \
-			-X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id" \
+if ext_ip=$(curl -s -X GET -4 https://ifconfig.co); then
+	echo "Found IPV4: $ext_ip"
+	for dns_record in $dns_records
+	do
+		record_data=$(curl -s \
+			-X GET "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records?type=A&name=$dns_record"  \
 			-H "Content-Type: application/json" \
 			-H "X-Auth-Email: $email" \
-			-H "Authorization: Bearer $api_token" \
-			--data "{\"type\":\"A\",\"name\":\"$dns_record\",\"content\":\"$ext_ip\",\"ttl\":1,\"proxied\":false}" \
-			| jq .success)
-					if [[ $result == "true" ]]; then
-						echo "$dns_record updated to: $ext_ip"
-						echo "$(date -Iminutes) IPV4: $dns_record updated to: $ext_ip" >> $logfile
-					else
-						echo "IPV4: $dns_record update failed"
-						echo "$(date -Iminutes) IPV4: $dns_record update failed" >> $logfile
-					fi
-				else
-					echo "IPV4: $dns_record already up do date"
-					#echo "$(date -Iminutes) IPV4: $dns_record already up do date" >> $logfile
-	fi
+			-H "Authorization: Bearer $api_token")
 
-	if [[ $cf_ip_6 != $ext_ip_6 ]]; then
-		result=$(curl -s \
-			-X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id_6" \
+
+		record_id=$(jq -r '{"result"}[] | .[0] | .id' <<< $record_data)
+		cf_ip=$(jq -r '{"result"}[] | .[0] | .content' <<< $record_data)
+	
+		echo "$dns_record cf_ip: $cf_ip"
+
+		if [[ $cf_ip != $ext_ip ]]; then
+			result=$(curl -s \
+				-X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id" \
+				-H "Content-Type: application/json" \
+				-H "X-Auth-Email: $email" \
+				-H "Authorization: Bearer $api_token" \
+				--data "{\"type\":\"A\",\"name\":\"$dns_record\",\"content\":\"$ext_ip\",\"ttl\":1,\"proxied\":false}" \
+				| jq .success)
+			if [[ $result == "true" ]]; then
+				echo "$dns_record updated to: $ext_ip"
+				echo "$(date -Iminutes) IPV4: $dns_record updated to: $ext_ip" >> $logfile
+			else
+				echo "IPV4: $dns_record update failed"
+				echo "$(date -Iminutes) IPV4: $dns_record update failed" >> $logfile
+			fi
+		else
+			echo "$dns_record already up do date"
+			#echo "$(date -Iminutes) IPV4: $dns_record already up do date" >> $logfile
+		fi
+	done
+fi
+
+
+if ext_ip_6=$(curl -s -X GET -6 https://ifconfig.co); then
+	echo "Found IPV6: $ext_ip_6"
+	for dns_record in $dns_records
+	do
+		record_data_6=$(curl -s \
+			-X GET "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records?type=AAAA&name=$dns_record"  \
 			-H "Content-Type: application/json" \
 			-H "X-Auth-Email: $email" \
-			-H "Authorization: Bearer $api_token" \
-			--data "{\"type\":\"AAAA\",\"name\":\"$dns_record\",\"content\":\"$ext_ip_6\",\"ttl\":1,\"proxied\":false}" \
-			| jq .success)
-					if [[ $result == "true" ]]; then
-						echo "IPV6: $dns_record updated to: $ext_ip_6"
-						echo "$(date -Iminutes) IPV6: $dns_record updated to: $ext_ip_6" >> $logfile
-					else
-						echo "IPV6: $dns_record update failed"
-						echo "$(date -Iminutes) IPV6: $dns_record update failed" >> $logfile
-					fi
-				else
-					echo "IPV6: $dns_record already up do date"
-					#echo "$(date -Iminutes) IPV6: $dns_record already up do date" >> $logfile
-	fi
-done
+			-H "Authorization: Bearer $api_token")
+
+		record_id_6=$(jq -r '{"result"}[] | .[0] | .id' <<< $record_data_6)
+		cf_ip_6=$(jq -r '{"result"}[] | .[0] | .content' <<< $record_data_6)
+	
+		echo "$dns_record: cf_ip_6: $cf_ip_6"
+
+		if [[ $cf_ip_6 != $ext_ip_6 ]]; then
+			result=$(curl -s \
+				-X PUT "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id_6" \
+				-H "Content-Type: application/json" \
+				-H "X-Auth-Email: $email" \
+				-H "Authorization: Bearer $api_token" \
+				--data "{\"type\":\"AAAA\",\"name\":\"$dns_record\",\"content\":\"$ext_ip_6\",\"ttl\":1,\"proxied\":false}" \
+				| jq .success)
+			if [[ $result == "true" ]]; then
+				echo "IPV6: $dns_record updated to: $ext_ip_6"
+				echo "$(date -Iminutes) IPV6: $dns_record updated to: $ext_ip_6" >> $logfile
+			else
+				echo "IPV6: $dns_record update failed"
+				echo "$(date -Iminutes) IPV6: $dns_record update failed" >> $logfile
+			fi
+		else
+			echo "IPV6: $dns_record already up do date"
+			#echo "$(date -Iminutes) IPV6: $dns_record already up do date" >> $logfile
+		fi
+	done
+fi

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 #take config as parameter
+
 source $1
 
 set -e

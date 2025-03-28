@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
-#take config as parameter
-
-source $1
-
 set -e
+
+if [ "$EUID" -ne 0 ]
+then
+    echo "Please run as root"
+    exit 1
+fi
+
+#take config as parameter
+source $1
 
 user_id=$(curl -4 -s \
     -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \

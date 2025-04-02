@@ -64,12 +64,12 @@ check_records() {
 
 }
 
-if ext_ip=$(curl -s -X GET -4 https://ifconfig.co); then
+if ext_ip=$($ipv4_command); then
   echo "Found IPV4: $ext_ip"
   check_records $ext_ip 'A'
 fi
 
-if ext_ip=$(curl -s -X GET -6 https://ifconfig.co); then
+if ext_ip=$($ipv6_command); then
   echo "Found IPV6: $ext_ip"
   check_records $ext_ip 'AAAA'
 fi

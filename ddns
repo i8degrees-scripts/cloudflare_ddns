@@ -10,6 +10,25 @@ fi
 #take config as parameter
 source $1
 
+# NOTE(JEFF): Setup the log file parameter when set to an non-empty value
+if [ "$logfile" != "" ]; then
+  dir_path=$(dirname "$logfile")
+  log_path=$(basename "$logfile")
+  abs_path="${dir_path}/${log_path}"
+
+  if ! mkdir -pv "$dir_path"; then
+    echo "CRITICAL: Failed to create directory path at ${dir_path}..."
+    echo
+    exit 2 # ENOENT
+  fi
+
+  if ! touch "$abs_path"; then
+    echo "CRITICAL: Failed to create log file at ${abs_path}..."
+    echo
+    exit 2 # ENOENT
+  fi
+fi
+
 check_records() {
 
   for zone_name in $(echo $domains | jq -r 'keys|.[]'); do
@@ -64,12 +83,33 @@ check_records() {
 
 }
 
-if ext_ip=$($ipv4_command); then
-  echo "Found IPV4: $ext_ip"
-  check_records $ext_ip 'A'
-fi
+for ipv4_command in "${ipv4_command[@]}"; do
+  if ext_ip=$($ipv4_command); then
+    echo "Found IPV4: $ext_ip"
+    check_records $ext_ip 'A'
+    break;
+  else
+    echo "CRITICAL: Failed to obtain your public ipv4 address..."
+    echo
+    echo "DEBUG: Please double check the URL set in ipv4_command at ${1}."
+    echo "DEBUG: The URL that halted this script is ${ipv4_command}."
+    echo
+    exit 5 # ENOIO
+  fi
+done
 
-if ext_ip=$($ipv6_command); then
-  echo "Found IPV6: $ext_ip"
-  check_records $ext_ip 'AAAA'
-fi
+for ipv6_command in "${ipv6_command[@]}"; do
+  if ext_ip=$($ipv6_command); then
+    echo "Found IPV6: $ext_ip"
+    check_records $ext_ip 'AAAA'
+    break;
+  else
+    echo "CRITICAL: Failed to obtain your public ipv6 address..."
+    echo
+    echo "DEBUG: Please double check the URL set in ipv6_command at ${1}."
+    echo "DEBUG: The URL that halted this script is ${ipv6_command}."
+    echo
+    exit 5 # ENOIO
+  fi
+done
+

@@ -1,3 +1,4 @@
 # cloudflare_ddns
 Updating A and AAAA records.
-run with: ddns ddns.config
+setup: `cp -av ddns.config.dist ddns.config`
+run with: `ddns ddns.config`

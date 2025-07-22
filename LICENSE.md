@@ -30,4 +30,4 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [0]: https://github.com/pilang/
-[10]: mailto: 1329364+i8degrees@users.noreply.github.com
+[10]: <mailto:1329364+i8degrees@users.noreply.github.com>

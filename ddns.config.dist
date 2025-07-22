@@ -1,6 +1,32 @@
+# ddns.config.dist
+#
+# IMPORTANT(JEFF): This file represents the default environment state that the
+# ddns script uses. You should always make a copy of this file as-is, i.e.:
+# `cp -av ddns.config.dist ddns.config` and use the copy to setup your
+# environment.
+#
+
 # Api info
 api_token=""
 email="user@company.com"
+
+# NOTE(JEFF): The ddns script will also accept ipv4_command and ipv6_command
+# as an array when specified as an array as shown below.
+#
+# The ddns script shall stop processing the array upon the first successful
+# result. Upon processing an element that results in an error from curl, the
+# script will exit immediately.
+ipv4_command=(
+  "curl -s -4 url1"
+  "curl -s -4 url2"
+)
+ipv6_command=(
+  "curl -s -6 url1"
+  "curl -s -6 url2"
+)
+# NOTE(JEFF): You may opt-out of one by clearing the records as shown below:
+ipv4_command=()
+ipv6_command=()
 
 #Command to get adresses:
 ipv4_command="curl -s -4 https://ipv4.icanhazip.com"
@@ -11,3 +37,9 @@ domains='{
            "domain.com":      ["sub1", "sub2" ],
            "anotherdom.com":  [ "@", "sub1", "sub2" ] 
          }'
+
+# NOTE(JEFF): The path of the logfile shall be created upon
+# running the script. If this variable is set to a non-empty value, the
+# failure to successfully create said path will result in an error, halting
+# the script.
+logfile=

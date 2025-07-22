@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+#set -e
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root"
@@ -28,6 +28,29 @@ if [ "$logfile" != "" ]; then
     exit 2 # ENOENT
   fi
 fi
+
+# Verify Cloudflare API token
+#
+#[int] verify_token(token = [required string])
+# ...where the return of zero (0) is successful
+verify_token() {
+  token="$1"
+  result=255 # undefined
+
+  #jq -r '{"result"}[] | .[0] | .status'
+  token_result=$(curl -4 -s \
+    "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $token" | \
+    jq -r .result.status
+  )
+
+  if [ "$token_result" = "active" ]; then
+    result=0
+  fi
+
+  return "$result"
+}
 
 check_records() {
 
@@ -82,6 +105,19 @@ check_records() {
   done
 
 }
+
+token_result=$(verify_token "$api_token")
+echo "token: $token_result"
+
+if [ "$token_result" = 0 ]; then
+  echo "INFO: Successful validation of the given API token at ${1}."
+  echo
+else
+  echo "CRITICAL: Failed to verify the given API token..."
+  echo "DEBUG: Please double check your API token specified in ${1}."
+  echo
+  exit 255 # undefined
+fi
 
 for ipv4_command in "${ipv4_command[@]}"; do
   if ext_ip=$($ipv4_command); then
